@@ -7,7 +7,7 @@ const phoneSchema = z.string().regex(/^1[3-9]\d{9}$/, '手机号格式错误')
 const codeSchema = z.string().length(6).regex(/^\d{6}$/, '验证码必须为 6 位数字')
 const passwordSchema = z
   .string()
-  .min(8, '密码至少 8 位')
+  .min(6, '密码至少 6 位')
   .max(64, '密码最多 64 位')
 
 // ───── 短信验证码 ─────
