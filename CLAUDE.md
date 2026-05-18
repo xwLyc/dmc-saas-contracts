@@ -129,3 +129,26 @@ npm run typecheck
 - **改字段**：先想这是 patch/minor/major 哪种，bump 错版本号会让消费端意外升级炸掉
 - **不要**写 fetch 工具函数、不要写 axios 封装、不要写错误处理 — 那些是消费端的事
 - **不要**在 schema 里依赖任何业务常量（除非该常量也在本 repo 定义并 export）
+
+## 消费端装包约定
+
+三端（backend / desktop / admin）的 `package.json` 默认用 **git+https + tag**（锁版本，CI / 别人 clone 也能装）：
+
+```json
+"@dmc/contracts": "git+https://github.com/xwLyc/dmc-saas-contracts.git#vX.Y.Z"
+```
+
+**本机临时联调改 contracts** → 用 `npm link`（不动 package.json）：
+
+```bash
+cd dmc-saas-contracts && npm link
+cd ../dmc-saas-backend && npm link @dmc/contracts
+# 改完还原:
+cd ../dmc-saas-backend && npm unlink @dmc/contracts && npm install
+```
+
+❌ **不要把 `file:../dmc-saas-contracts` 写进消费端 package.json**：本机能装，但 CI / 别的开发机 clone 后 `npm install` 会找不到兄弟目录直接失败。
+
+### 为什么 git+https 装包能 work
+
+`prepare` 脚本（在本包 package.json）会在 `npm install` 拉到 git 源后自动 `npm run build` 生成 `dist/`，供消费端 `import`。`dist/` 不进 git，也不在 GitHub 上。
