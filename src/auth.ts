@@ -14,7 +14,8 @@ const passwordSchema = z
 
 export const SendCodeRequest = z.object({
   phone: phoneSchema,
-  scene: z.enum(['register', 'login', 'reset_password']),
+  // 短信只用于注册 + 找回密码，不用于登录（登录走密码 + JWT，避免每次扫码都发短信）
+  scene: z.enum(['register', 'reset_password']),
 })
 export type SendCodeRequest = z.infer<typeof SendCodeRequest>
 
@@ -38,11 +39,13 @@ const SessionTokens = z.object({
   refreshToken: z.string(),
 })
 
-// ───── 登录 ─────
+// ───── 登录（密码登录，短信不再走登录路径） ─────
 
 export const LoginRequest = z.object({
   phone: phoneSchema,
-  code: codeSchema,
+  // 登录只验非空 — 密码强度规则在注册/改密时校验（passwordSchema），
+  // 登录端不复用强度校验以避免规则升级后老密码登不上来
+  password: z.string().min(1),
 })
 export type LoginRequest = z.infer<typeof LoginRequest>
 
