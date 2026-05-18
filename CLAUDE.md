@@ -61,6 +61,22 @@ function login(body: LoginRequest) {  // type
 
 新增第 7 个域时，先开 issue / 在这里登记，再加文件。
 
+### Cross-file import 必须带 `.js` 后缀
+
+src/ 内部的相对 import 必须带 `.js` 后缀（不是 `.ts`，即使源文件是 .ts）：
+
+```ts
+// ✅ 正确
+import { TenantId } from './common.js'
+export * from './auth.js'
+
+// ❌ 错误 — tsc 能编过，但 Node ESM 运行时报 ERR_MODULE_NOT_FOUND
+import { TenantId } from './common'
+export * from './auth'
+```
+
+**理由**：本包是 ESM（`"type": "module"`），Node ESM 解析器不会自动补扩展名。tsc + `moduleResolution: Bundler` 允许省略后缀（用于 bundler 场景），但消费端（backend/desktop/admin）用 native Node ESM 加载本包的 `dist/*.js`，必须看到完整路径才能 resolve。曾在 v0.1.0 因此报错。
+
 ### ID 类型用 branded type
 
 ```ts

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { TenantId } from './common'
+import { TenantId } from './common.js'
 
 // ───── GET /tenants/me ─────
 

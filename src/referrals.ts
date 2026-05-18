@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { TenantId, PaginationQuery, PaginationResponse } from './common'
+import { TenantId, PaginationQuery, PaginationResponse } from './common.js'
 
 // ───── 邀请码 ─────
 

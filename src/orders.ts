@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { OrderId, TenantId, PaginationQuery, PaginationResponse } from './common'
-import { PlanId } from './subscriptions'
+import { OrderId, TenantId, PaginationQuery, PaginationResponse } from './common.js'
+import { PlanId } from './subscriptions.js'
 
 // ───── 订单状态机 ─────
 
