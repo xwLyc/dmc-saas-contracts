@@ -1,19 +1,37 @@
 import { z } from 'zod'
 import { TenantId } from './common.js'
 
-// ───── GET /tenants/me ─────
+// ───── 工厂租户完整 profile ─────
+// GET /tenants/me 返回这个，hydrate / refreshMe 用。
+// LoginResponse / RegisterResponse 里的 tenant 是精简 TenantSummary（auth.ts 内）。
 
 export const TenantProfile = z.object({
   id: TenantId,
   name: z.string(),
+  contactName: z.string(),
   phone: z.string(),
-  contactName: z.string().nullable(),
+  exportCategory: z.string().nullable(),
   region: z.string().nullable(),
+  licenseNo: z.string().nullable(),
+  invoiceEmail: z.string().nullable(),
+  // 工厂自己的推荐码（注册时自动生成）
+  referralCode: z.string(),
+  // 谁推荐我的（null = 我公司直接邀请进来的种子工厂）
+  referredByTenantId: TenantId.nullable(),
+  invitedBy: z.enum(['company', 'referral']),
+  status: z.enum(['trial', 'active', 'expired', 'disabled']),
   trialEndsAt: z.string().datetime().nullable(),
   subscriptionEndsAt: z.string().datetime().nullable(),
   createdAt: z.string().datetime(),
 })
 export type TenantProfile = z.infer<typeof TenantProfile>
+
+// ───── GET /tenants/me ─────
+
+export const MeResponse = z.object({
+  tenant: TenantProfile,
+})
+export type MeResponse = z.infer<typeof MeResponse>
 
 // ───── PATCH /tenants/me ─────
 

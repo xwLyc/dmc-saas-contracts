@@ -14,8 +14,12 @@ const passwordSchema = z
 
 export const SendCodeRequest = z.object({
   phone: phoneSchema,
-  // 短信只用于注册 + 找回密码，不用于登录（登录走密码 + JWT，避免每次扫码都发短信）
-  scene: z.enum(['register', 'reset_password']),
+  // purpose 对齐 docs §6.3 sms_codes.purpose enum
+  // - register       注册新工厂
+  // - password_reset 找回密码
+  // - change_phone   改绑手机号（暂未实现，预留）
+  // 登录不发短信（密码 + JWT，避免每次开机付短信钱）
+  purpose: z.enum(['register', 'password_reset', 'change_phone']),
 })
 export type SendCodeRequest = z.infer<typeof SendCodeRequest>
 
@@ -35,7 +39,7 @@ const TenantSummary = z.object({
 })
 
 const SessionTokens = z.object({
-  token: z.string(),
+  accessToken: z.string(),
   refreshToken: z.string(),
 })
 
@@ -58,10 +62,12 @@ export type LoginResponse = z.infer<typeof LoginResponse>
 
 export const RegisterRequest = z.object({
   phone: phoneSchema,
-  code: codeSchema,
+  smsCode: codeSchema,
   password: passwordSchema,
   factoryName: z.string().min(2).max(50),
-  invitationCode: z.string().min(6).max(12).optional(), // 渠道 A 邀请码 / 渠道 B 推荐码
+  // 可选：联系人姓名（不传则后端用 factoryName 截断作占位）
+  contactName: z.string().min(1).max(20).optional(),
+  invitationCode: z.string().min(6).max(12).optional(),
 })
 export type RegisterRequest = z.infer<typeof RegisterRequest>
 
@@ -72,7 +78,7 @@ export type RegisterResponse = z.infer<typeof RegisterResponse>
 
 export const ResetPasswordRequest = z.object({
   phone: phoneSchema,
-  code: codeSchema,
+  smsCode: codeSchema,
   newPassword: passwordSchema,
 })
 export type ResetPasswordRequest = z.infer<typeof ResetPasswordRequest>
