@@ -83,8 +83,9 @@ export const AdminTenantDetail = z.object({
   referredByTenantId: TenantId.nullable(),
   invitedBy: z.enum(['company', 'referral']),
   status: TenantStatus,
-  trialEndsAt: z.string().datetime().nullable(),
-  subscriptionEndsAt: z.string().datetime().nullable(),
+  // v0.6.0:trialEndsAt/subscriptionEndsAt 合并为 expiresAt + firstSubscribedAt
+  expiresAt: z.string().datetime(),
+  firstSubscribedAt: z.string().datetime().nullable(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 })

@@ -34,8 +34,9 @@ const TenantSummary = z.object({
   id: TenantId,
   name: z.string(),
   phone: phoneSchema,
-  trialEndsAt: z.string().datetime().nullable(),
-  subscriptionEndsAt: z.string().datetime().nullable(),
+  // 唯一到期时间(v0.6.0 起取代 trialEndsAt/subscriptionEndsAt)
+  expiresAt: z.string().datetime(),
+  firstSubscribedAt: z.string().datetime().nullable(),
 })
 
 const SessionTokens = z.object({

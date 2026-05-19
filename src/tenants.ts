@@ -20,8 +20,11 @@ export const TenantProfile = z.object({
   referredByTenantId: TenantId.nullable(),
   invitedBy: z.enum(['company', 'referral']),
   status: z.enum(['trial', 'active', 'expired', 'disabled']),
-  trialEndsAt: z.string().datetime().nullable(),
-  subscriptionEndsAt: z.string().datetime().nullable(),
+  // 唯一到期时间——不区分 trial / sub,推荐返佣和订阅续费都改这一个字段
+  expiresAt: z.string().datetime(),
+  // 首次订阅时间;null = 从未订阅 = trial 工厂。
+  // 用于派生 status:firstSubscribedAt 非空且未到期 → active;null 且未到期 → trial
+  firstSubscribedAt: z.string().datetime().nullable(),
   createdAt: z.string().datetime(),
 })
 export type TenantProfile = z.infer<typeof TenantProfile>
