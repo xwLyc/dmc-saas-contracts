@@ -14,9 +14,11 @@ export type InvitationId = z.infer<typeof InvitationId>
 
 // ───── 分页 ─────
 
+// page/pageSize 用 z.coerce.number() 自动把 query string "1" 转 number 1,
+// 否则 fastify 的 querystring 默认全是 string,backend validate 会拒(400)。
 export const PaginationQuery = z.object({
-  page: z.number().int().min(1).default(1),
-  pageSize: z.number().int().min(1).max(100).default(20),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
 })
 export type PaginationQuery = z.infer<typeof PaginationQuery>
 
