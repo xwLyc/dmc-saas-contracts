@@ -107,3 +107,25 @@ export const LogoutRequest = z.object({
   refreshToken: z.string(),
 })
 export type LogoutRequest = z.infer<typeof LogoutRequest>
+
+// ───── 校验邀请码（注册前 onBlur 调用，返回是否有效 + 渠道类型） ─────
+// 两种渠道:
+//   referral   = 工厂推荐码(查 tenants.referralCode)
+//   activation = 公司激活码(查 invitations 表,Phase D2 落地)
+
+export const CheckInvitationRequest = z.object({
+  code: z.string().min(1).max(20),
+})
+export type CheckInvitationRequest = z.infer<typeof CheckInvitationRequest>
+
+export const CheckInvitationResponse = z.object({
+  valid: z.boolean(),
+  type: z.enum(['activation', 'referral']).optional(),
+  // 推荐渠道:推荐人工厂名(注册成功提示用)
+  referrerName: z.string().optional(),
+  // 激活码渠道:admin 预填的工厂资料(注册页 prefill)
+  prefilledFactoryName: z.string().optional(),
+  // 校验失败时返回失败原因
+  reason: z.string().optional(),
+})
+export type CheckInvitationResponse = z.infer<typeof CheckInvitationResponse>
