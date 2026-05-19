@@ -17,7 +17,6 @@ export type AdminUser = z.infer<typeof AdminUser>
 
 export const AdminLoginRequest = z.object({
   username: z.string().min(3).max(32),
-  // 登录只验非空 — 密码强度规则在 seed 时由我公司把控,不在 schema 层强制
   password: z.string().min(1),
 })
 export type AdminLoginRequest = z.infer<typeof AdminLoginRequest>
@@ -29,13 +28,32 @@ export const AdminLoginResponse = z.object({
 })
 export type AdminLoginResponse = z.infer<typeof AdminLoginResponse>
 
-// ───── 工厂状态（admin 视角，等同 tenant.status） ─────
+// ───── admin refresh token ─────
+
+export const AdminRefreshRequest = z.object({
+  refreshToken: z.string(),
+})
+export type AdminRefreshRequest = z.infer<typeof AdminRefreshRequest>
+
+export const AdminRefreshResponse = z.object({
+  accessToken: z.string(),
+  refreshToken: z.string(),
+})
+export type AdminRefreshResponse = z.infer<typeof AdminRefreshResponse>
+
+// ───── admin 退出登录 ─────
+
+export const AdminLogoutRequest = z.object({
+  refreshToken: z.string(),
+})
+export type AdminLogoutRequest = z.infer<typeof AdminLogoutRequest>
+
+// ───── 工厂状态 ─────
 
 export const TenantStatus = z.enum(['trial', 'active', 'expired', 'disabled'])
 export type TenantStatus = z.infer<typeof TenantStatus>
 
-// ───── 工厂列表行（admin 视角的工厂概要） ─────
-// docs §2.1 工厂列表字段精简版
+// ───── 工厂列表行(精简,列表用) ─────
 
 export const AdminTenantRow = z.object({
   id: TenantId,
@@ -50,11 +68,31 @@ export const AdminTenantRow = z.object({
 })
 export type AdminTenantRow = z.infer<typeof AdminTenantRow>
 
-// ───── GET /admin/tenants ─────
-// 分页 + 模糊搜索(name/phone) + status 筛选
+// ───── 工厂详情(完整,详情页用) ─────
+
+export const AdminTenantDetail = z.object({
+  id: TenantId,
+  name: z.string(),
+  contactName: z.string(),
+  contactPhone: z.string(),
+  region: z.string().nullable(),
+  exportCategory: z.string().nullable(),
+  licenseNo: z.string().nullable(),
+  invoiceEmail: z.string().nullable(),
+  referralCode: z.string(),
+  referredByTenantId: TenantId.nullable(),
+  invitedBy: z.enum(['company', 'referral']),
+  status: TenantStatus,
+  trialEndsAt: z.string().datetime().nullable(),
+  subscriptionEndsAt: z.string().datetime().nullable(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+})
+export type AdminTenantDetail = z.infer<typeof AdminTenantDetail>
+
+// ───── GET /admin/tenants 列表查询 ─────
 
 export const AdminListTenantsQuery = PaginationQuery.extend({
-  // 搜索关键字（匹配工厂名 / 联系人 / 手机号 三字段任一）
   search: z.string().optional(),
   status: TenantStatus.optional(),
 })
@@ -62,3 +100,27 @@ export type AdminListTenantsQuery = z.infer<typeof AdminListTenantsQuery>
 
 export const AdminListTenantsResponse = PaginationResponse(AdminTenantRow)
 export type AdminListTenantsResponse = z.infer<typeof AdminListTenantsResponse>
+
+// ───── PATCH /admin/tenants/:id/status (admin 改状态) ─────
+
+export const AdminUpdateTenantStatusRequest = z.object({
+  status: TenantStatus,
+  // 改成 disabled 时建议写原因(用于 audit log,后续 phase 落地)
+  reason: z.string().max(200).optional(),
+})
+export type AdminUpdateTenantStatusRequest = z.infer<
+  typeof AdminUpdateTenantStatusRequest
+>
+
+// ───── POST /admin/tenants (admin 直接创建工厂,不走邀请码) ─────
+
+export const AdminCreateTenantRequest = z.object({
+  phone: z.string().regex(/^1[3-9]\d{9}$/, '手机号格式错误'),
+  // admin 创建时直接设初始密码,工厂老板可以用"忘记密码"自助改
+  password: z.string().min(6).max(64),
+  factoryName: z.string().min(2).max(50),
+  contactName: z.string().min(1).max(20).optional(),
+  region: z.string().max(50).optional(),
+  exportCategory: z.string().max(50).optional(),
+})
+export type AdminCreateTenantRequest = z.infer<typeof AdminCreateTenantRequest>
