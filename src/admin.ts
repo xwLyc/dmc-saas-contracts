@@ -77,8 +77,6 @@ export const AdminTenantDetail = z.object({
   contactPhone: z.string(),
   region: z.string().nullable(),
   exportCategory: z.string().nullable(),
-  licenseNo: z.string().nullable(),
-  invoiceEmail: z.string().nullable(),
   referralCode: z.string(),
   referredByTenantId: TenantId.nullable(),
   invitedBy: z.enum(['company', 'referral']),

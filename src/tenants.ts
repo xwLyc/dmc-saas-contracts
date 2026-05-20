@@ -12,8 +12,6 @@ export const TenantProfile = z.object({
   phone: z.string(),
   exportCategory: z.string().nullable(),
   region: z.string().nullable(),
-  licenseNo: z.string().nullable(),
-  invoiceEmail: z.string().nullable(),
   // 工厂自己的推荐码（注册时自动生成）
   referralCode: z.string(),
   // 谁推荐我的（null = 我公司直接邀请进来的种子工厂）
@@ -42,6 +40,8 @@ export const UpdateTenantRequest = z.object({
   name: z.string().min(2).max(50).optional(),
   contactName: z.string().max(20).optional(),
   region: z.string().max(50).optional(),
+  // null 显式清空,undefined 不改;前端"不填" 走 undefined
+  exportCategory: z.string().max(50).nullable().optional(),
 })
 export type UpdateTenantRequest = z.infer<typeof UpdateTenantRequest>
 
