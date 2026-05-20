@@ -75,6 +75,7 @@ export type AdminListAuditLogsResponse = z.infer<typeof AdminListAuditLogsRespon
 export const TenantActivityAction = z.enum([
   'password_change',
   'profile_update',
+  'phone_change',
   'subscribe',
 ])
 export type TenantActivityAction = z.infer<typeof TenantActivityAction>

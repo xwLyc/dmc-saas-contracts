@@ -92,6 +92,19 @@ export const ChangePasswordRequest = z.object({
 })
 export type ChangePasswordRequest = z.infer<typeof ChangePasswordRequest>
 
+// ───── 改手机号（已登录,POST /tenants/me/phone）─────
+// 流程: currentPassword 验身份 + 新手机短信验证码 → 改 phone + revoke 所有 session
+// 不用旧手机短信验证(防"换号后旧号收不到短信"的死锁)
+
+export const ChangePhoneRequest = z.object({
+  // 验当前密码确认是本人操作(防 access token 被盗)
+  currentPassword: z.string().min(1),
+  newPhone: phoneSchema,
+  // 新手机收到的短信验证码(purpose=change_phone)
+  smsCode: z.string().min(4).max(8),
+})
+export type ChangePhoneRequest = z.infer<typeof ChangePhoneRequest>
+
 // ───── 刷新 token ─────
 
 export const RefreshTokenRequest = z.object({
