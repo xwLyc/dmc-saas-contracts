@@ -1,87 +1,101 @@
 import { z } from 'zod'
-import { PaginationQuery, PaginationResponse } from './common.js'
+import { TenantId, PaginationQuery, PaginationResponse } from './common.js'
 
 /**
- * 统一审计日志 schema(v0.9.0 起 actor 模型,替代 v0.7.0 admin-only)。
+ * Admin 操作审计日志 schema(v0.10.0 起严格 admin-only)。
  *
- * 用途:记录"谁(admin 或 tenant 或 system)在什么时候改了什么"。
+ * 用途:记录我公司管理员对工厂/系统的所有变更动作,事后追溯"谁在什么时候改了什么"。
+ * 工厂自己的操作日志在独立的 TenantActivityLog(给桌面端工厂自己看),
+ * 不混到 admin audit 里。
  *
- * 写入时机:
- *   admin 操作(backend services/admin.ts):
- *     - admin.login                 admin 登录
- *     - tenant.create               admin 直接建工厂
- *     - tenant.status_change        admin 改工厂状态
- *   tenant 操作(backend services/tenant.ts / subscription.ts):
- *     - tenant.password_change      工厂自己改密码
- *     - tenant.profile_update       工厂自己改资料(PATCH /tenants/me)
- *     - tenant.subscribe            工厂订阅
- *   不记录(太频繁,会爆表):
- *     - tenant.login / tenant.logout / token refresh / 普通 GET
+ * 写入时机(backend services/admin.ts):
+ *   - admin.login                 admin 登录
+ *   - tenant.create               admin 直接建工厂
+ *   - tenant.status_change        admin 改工厂状态
  *
  * 审计记录是 append-only,前端只能查询不能修改/删除。
  */
 
-// actor 类型:谁触发了这次操作
-export const AuditActorType = z.enum(['admin', 'tenant', 'system'])
-export type AuditActorType = z.infer<typeof AuditActorType>
-
-// action 集合(string enum,方便扩展;按 actor 归类便于阅读)
 export const AuditAction = z.enum([
-  // admin 操作
   'admin.login',
   'tenant.create',
   'tenant.status_change',
-  // tenant 自己的操作
-  'tenant.password_change',
-  'tenant.profile_update',
-  'tenant.subscribe',
 ])
 export type AuditAction = z.infer<typeof AuditAction>
 
 export const AuditTargetType = z.enum(['tenant', 'admin'])
 export type AuditTargetType = z.infer<typeof AuditTargetType>
 
-// ───── 单条审计记录 ─────
-
-export const AuditLog = z.object({
+export const AdminAuditLog = z.object({
   id: z.string().uuid(),
-  // actor:谁触发的(admin / tenant / system)
-  actorType: AuditActorType,
-  actorId: z.string().uuid(),
-  // snapshot:actor 显示名(admin.username 或 tenant.name),actor 改名后仍可读
-  actorName: z.string(),
-  // 操作:action + 目标
+  // admin 触发者:adminId + snapshot username
+  adminId: z.string().uuid(),
+  adminUsername: z.string(),
   action: AuditAction,
   targetType: AuditTargetType,
   targetId: z.string().uuid(),
-  // snapshot:目标名(冗余存避免 join + 目标删了仍可读)
   targetName: z.string().nullable(),
-  // 操作详情(JSON):before/after/reason 等
   details: z.unknown(),
-  // 上下文
   ipAddress: z.string().nullable(),
   userAgent: z.string().nullable(),
   createdAt: z.string().datetime(),
 })
-export type AuditLog = z.infer<typeof AuditLog>
-
-/** @deprecated v0.9.0 起改用 AuditLog,保留 alias 防止旧代码炸 */
-export const AdminAuditLog = AuditLog
-export type AdminAuditLog = AuditLog
+export type AdminAuditLog = z.infer<typeof AdminAuditLog>
 
 // ───── GET /admin/audit-logs ─────
 
 export const AdminListAuditLogsQuery = PaginationQuery.extend({
-  // actor 筛
-  actorType: AuditActorType.optional(),
-  actorId: z.string().uuid().optional(),
-  // target 筛(查某个工厂的所有操作记录)
+  adminId: z.string().uuid().optional(),
   targetType: AuditTargetType.optional(),
   targetId: z.string().uuid().optional(),
-  // action 筛
   action: AuditAction.optional(),
 })
 export type AdminListAuditLogsQuery = z.infer<typeof AdminListAuditLogsQuery>
 
-export const AdminListAuditLogsResponse = PaginationResponse(AuditLog)
+export const AdminListAuditLogsResponse = PaginationResponse(AdminAuditLog)
 export type AdminListAuditLogsResponse = z.infer<typeof AdminListAuditLogsResponse>
+
+// ─────────────────────────────────────────────────────────
+// TenantActivityLog —— 工厂自己的操作历史(给桌面端工厂看)
+// ─────────────────────────────────────────────────────────
+/**
+ * 写入时机(backend):
+ *   - password_change   tenant 改密码(POST /tenants/me/password 成功后)
+ *   - profile_update    tenant 改资料(PATCH /tenants/me)
+ *   - subscribe         tenant 订阅(POST /tenants/me/subscribe)
+ *
+ * 不记录(太频繁/无意义):
+ *   - tenant.login / logout / token refresh / 普通 GET
+ *
+ * 查询入口:桌面端 GET /tenants/me/activity(只能看自己的)。
+ * admin 端不查这个表(admin 想看 tenant 历史可走"工厂详情→活动" tab,
+ * 但目前 admin UI 不展示——保持职责分离)。
+ */
+
+export const TenantActivityAction = z.enum([
+  'password_change',
+  'profile_update',
+  'subscribe',
+])
+export type TenantActivityAction = z.infer<typeof TenantActivityAction>
+
+export const TenantActivityLog = z.object({
+  id: z.string().uuid(),
+  tenantId: TenantId,
+  action: TenantActivityAction,
+  details: z.unknown(),
+  ipAddress: z.string().nullable(),
+  userAgent: z.string().nullable(),
+  createdAt: z.string().datetime(),
+})
+export type TenantActivityLog = z.infer<typeof TenantActivityLog>
+
+// ───── GET /tenants/me/activity ─────
+
+export const ListTenantActivityQuery = PaginationQuery.extend({
+  action: TenantActivityAction.optional(),
+})
+export type ListTenantActivityQuery = z.infer<typeof ListTenantActivityQuery>
+
+export const ListTenantActivityResponse = PaginationResponse(TenantActivityLog)
+export type ListTenantActivityResponse = z.infer<typeof ListTenantActivityResponse>
