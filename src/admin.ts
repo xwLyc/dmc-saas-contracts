@@ -111,6 +111,18 @@ export type AdminUpdateTenantStatusRequest = z.infer<
   typeof AdminUpdateTenantStatusRequest
 >
 
+// ───── POST /admin/tenants/:id/renew (admin 给工厂手动续期)─────
+// 业务:工厂线下付款后 admin 凭"客服记录 + 收款备注"在后管点续期。
+// 跟工厂自助 subscribe 共用 subscription service(内部 expiresAt 累加 + 推荐返佣触发),
+// 但额外写一行 admin audit log(记 admin 操作 + 备注)。
+
+export const AdminRenewTenantRequest = z.object({
+  plan: z.enum(['monthly', 'yearly']),
+  // 备注(写到 admin audit log details,如"已收微信付款 ¥19.9,流水 xxx"),选填
+  note: z.string().max(500).optional(),
+})
+export type AdminRenewTenantRequest = z.infer<typeof AdminRenewTenantRequest>
+
 // ───── POST /admin/tenants (admin 直接创建工厂,不走邀请码) ─────
 
 export const AdminCreateTenantRequest = z.object({
