@@ -169,6 +169,7 @@ export const AdminListSubscriptionsQuery = PaginationQuery.extend({
   source: AdminSubscriptionSource.optional(),
   from: z.string().datetime().optional(),  // createdAt >= from
   to: z.string().datetime().optional(),    // createdAt <= to
+  tenantId: TenantId.optional(),  // 锁单个工厂(工厂详情页订阅历史子表用)
 })
 export type AdminListSubscriptionsQuery = z.infer<typeof AdminListSubscriptionsQuery>
 
