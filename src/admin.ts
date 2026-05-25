@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { TenantId, PaginationQuery, PaginationResponse } from './common.js'
+import { PlanId } from './subscriptions.js'
 
 // ───── admin 账号 ─────
 // MVP 单一 admin 账号(docs §7.1 v2.0),不做注册端点。
@@ -135,3 +136,41 @@ export const AdminCreateTenantRequest = z.object({
   exportCategory: z.string().max(50).optional(),
 })
 export type AdminCreateTenantRequest = z.infer<typeof AdminCreateTenantRequest>
+
+// ───── 订阅订单来源 ─────
+// 'self'     = 工厂自己注册(invitedBy='company' 或无推荐人)
+// 'referred' = 工厂被其他工厂推荐进来后订阅(tenant.referredByTenantId 不为空)
+// 派生字段,不直接存表;返佣对账 / 渠道营收分析时用
+
+export const AdminSubscriptionSource = z.enum(['self', 'referred'])
+export type AdminSubscriptionSource = z.infer<typeof AdminSubscriptionSource>
+
+// ───── 订阅订单行(列表用,JOIN tenant 拿 name + 派生 source) ─────
+
+export const AdminSubscriptionRow = z.object({
+  id: z.string().uuid(),
+  tenantId: TenantId,
+  tenantName: z.string(),
+  plan: PlanId,
+  priceYuan: z.number().nonnegative(),
+  startsAt: z.string().datetime(),
+  expiresAt: z.string().datetime(),
+  createdAt: z.string().datetime(),
+  source: AdminSubscriptionSource,
+})
+export type AdminSubscriptionRow = z.infer<typeof AdminSubscriptionRow>
+
+// ───── GET /admin/subscriptions 列表查询 ─────
+// 默认 createdAt desc;from/to 是 ISO 日期串,前端用最近 30 天 / 当月 / 自定义范围拼
+
+export const AdminListSubscriptionsQuery = PaginationQuery.extend({
+  search: z.string().optional(),  // 模糊匹配 tenant.name
+  plan: PlanId.optional(),
+  source: AdminSubscriptionSource.optional(),
+  from: z.string().datetime().optional(),  // createdAt >= from
+  to: z.string().datetime().optional(),    // createdAt <= to
+})
+export type AdminListSubscriptionsQuery = z.infer<typeof AdminListSubscriptionsQuery>
+
+export const AdminListSubscriptionsResponse = PaginationResponse(AdminSubscriptionRow)
+export type AdminListSubscriptionsResponse = z.infer<typeof AdminListSubscriptionsResponse>
