@@ -12,6 +12,9 @@ import { TenantId } from './common.js'
  */
 
 // ───── KPI 9 项(Tier 1)─────
+// 时间相关字段:
+//   *InRange / *ThisMonth → 受 AdminDashboardStatsQuery.from/to 控制
+//   其余(累计 / 活跃 / 即将到期等)跟时间段无关,始终全量算
 
 export const DashboardKpi = z.object({
   totalTenants: z.number().int().nonnegative(),            // 累计工厂数
@@ -19,12 +22,23 @@ export const DashboardKpi = z.object({
   trialCount: z.number().int().nonnegative(),              // 试用中(未订阅且未到期)
   expiringIn7Days: z.number().int().nonnegative(),         // 7 天内到期
   expiredCount: z.number().int().nonnegative(),            // 已到期
-  newTenantsThisMonth: z.number().int().nonnegative(),     // 本月新增工厂
-  revenueThisMonth: z.number().nonnegative(),              // 本月营收(元)
+  newTenantsInRange: z.number().int().nonnegative(),       // 区间内新增工厂(默认本月)
+  revenueInRange: z.number().nonnegative(),                // 区间内营收(元,默认本月)
   revenueTotal: z.number().nonnegative(),                  // 累计营收(元)
   totalRewardDays: z.number().int().nonnegative(),         // 累计推荐返佣天数
 })
 export type DashboardKpi = z.infer<typeof DashboardKpi>
+
+// ───── Query —— GET /admin/dashboard/stats?from=&to= ─────
+// 都 optional;不传默认 from=本月 1 日 / to=本月最后一天。
+// 影响:KPI 的 *InRange + byMonth 趋势图区间窗口。
+// 其他 KPI 时间无关,不受影响。
+
+export const AdminDashboardStatsQuery = z.object({
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+})
+export type AdminDashboardStatsQuery = z.infer<typeof AdminDashboardStatsQuery>
 
 // ───── 月度趋势(Tier 2)─────
 
@@ -76,7 +90,7 @@ export type DashboardExpiringTenant = z.infer<typeof DashboardExpiringTenant>
 
 export const AdminDashboardStats = z.object({
   kpi: DashboardKpi,
-  // 近 12 个月,按 month 升序
+  // 按 from/to 月份升序;不传 from/to 时返近 12 个月
   revenueByMonth: z.array(DashboardMonthlyPoint),
   newTenantsByMonth: z.array(DashboardMonthlyPoint),
   channelDistribution: DashboardChannelDistribution,
